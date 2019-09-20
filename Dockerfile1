@@ -1,12 +1,9 @@
-# We'll choose the incredibly lightweight
-# Go alpine image to work with
-FROM golang:1.12.0 AS builder
+# We specify the base image we need for our
+# go application
+FROM golang:1.12.0-alpine3.9
 
 # Set environment variables so we go Go modules in vendor mode
 ENV GO111MODULE=on \
-  GOOS=linux \
-  GOARCH=amd64 \
-  CGO_ENABLED=0 \
   GOFLAGS=-mod=vendor
 
 # We create an /app directory within our
@@ -27,23 +24,15 @@ WORKDIR /app
 # executable of our Go program
 RUN go build -o main ./cmd
 
-# the lightweight scratch image we'll
-# run our application within
-FROM alpine:latest AS production
-
-# We have to copy the output from our
-# builder stage to our production stage
-COPY --from=builder /app .
-
 # we add an appuser so we don't have to run as ROOT
 RUN adduser -S -D -H -h /app appuser
 
 # modify main app to be executable
 # (and read/writable) by its owner
-RUN chmod 700 /main
+RUN chmod 700 /app/main
 
 # change app's owner to appuser
-RUN chown appuser /main
+RUN chown appuser /app/main
 
 # set current user to appuser
 # from here on, the user is appuser not ROOT
@@ -52,6 +41,6 @@ USER appuser
 # document that the app uses port 8080
 EXPOSE 8080
 
-# we can then kick off our newly compiled
-# binary exectuable!!
+# Our start command which kicks off
+# our newly created binary executable
 CMD ["./main"]
